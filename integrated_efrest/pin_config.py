@@ -1,12 +1,21 @@
 PINS = {
-    "motor_kanan": {
-            "dir_a": 15,
-            "dir_b": 14, 
-            "pwm": 6   
+    'motor_kanan': {
+        'in1': 15,
+        'in2': 14, 
+        'en_a': 6   
     },
-    "motor_kiri": {
-        "dir_a": 7,
-        "dir_b": 8,
-        "pwm": 22  
-    }
+    'motor_kiri': {
+        'in3': 7,
+        'in4': 8,
+        'en_b': 22  
+    },
+    'buzzer': 18,
+    'ultrasonik_1': {
+        'trigger': 20,
+        'echo': 16
+    },
+    'ultrasonik_2': {
+        'trigger': 26,
+        'echo': 19
+    } 
 }

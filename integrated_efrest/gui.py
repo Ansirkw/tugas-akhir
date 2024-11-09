@@ -5,16 +5,11 @@ from PyQt5.QtWidgets import QApplication, QHBoxLayout, QWidget, QVBoxLayout, QPu
 import cv2
 import dlib
 import numpy as np
-import motor
 from sleepy_detector import SleepyDetectorThread
-
-motor.maju()
 
 class MyApp(QWidget):
     def __init__(self):
         super().__init__()
-
-        self.frame_queue
 
         # Set up the window
         self.setWindowTitle("Human Machine Interface")
@@ -29,10 +24,6 @@ class MyApp(QWidget):
         hbox.addLayout(self.second_column())
 
         self.setLayout(hbox)
-
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_frame)
-        self.timer.start(30)
 
         self.sleepy_detector = SleepyDetectorThread()
         self.sleepy_detector.data_sleepy_detector.connect(self.update_frame)

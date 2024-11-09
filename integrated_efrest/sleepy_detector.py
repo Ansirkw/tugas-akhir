@@ -1,4 +1,3 @@
-from RPi import GPIO
 import time 
 from PyQt5.QtCore import QThread, pyqtSignal
 from pin_config import PINS
@@ -14,6 +13,9 @@ class SleepyDetectorThread(QThread):
         detector = dlib.get_frontal_face_detector()
         predictor = dlib.shape_predictor(predictor_path)
         cap = cv2.VideoCapture(0)
+        
+        queue = np.zeros(30,dtype=int)
+        queue = queue.tolist()
         while True:
             _, img = cap.read()
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -40,11 +42,11 @@ class SleepyDetectorThread(QThread):
                     sleepy_warning = True
                     cv2.putText(img, "PERINGATAN!", (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2, cv2.LINE_AA)
                 else:
-                    cv2.putText(img, "SAFE", (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2, cv2.LINE_AA)
+                    cv2.putText(img, "AMAN", (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2, cv2.LINE_AA)
             
             self.data_sleepy_detector.emit((img, sleepy_warning))
 
-    def landmarks_to_np(landmarks, dtype="int"):
+    def landmarks_to_np(self, landmarks, dtype="int"):
         num = landmarks.num_parts
         coords = np.zeros((num, 2), dtype=dtype)
         for i in range(0, num):

@@ -1,6 +1,6 @@
 import RPi.GPIO as GPIO
 import time
-from pin_config import PINS
+from .pin_config import PINS
 
 def buzz(pitch, duration):
     period = 1.0 / pitch

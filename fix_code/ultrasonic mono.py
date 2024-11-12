@@ -2,8 +2,8 @@ import RPi.GPIO as GPIO
 import time 
 
 # Pin untuk sensor ultrasonik kedua
-trigger_pin_2 = 26
-echo_pin_2 = 19
+trigger_pin_2 = 20
+echo_pin_2 = 16
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(trigger_pin_2, GPIO.OUT)

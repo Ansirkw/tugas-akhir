@@ -2,44 +2,51 @@ import sys
 from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtWidgets import QApplication, QHBoxLayout, QWidget, QVBoxLayout, QPushButton, QLabel, QGridLayout, QSizePolicy
-import numpy as np
 from .motor import Motor
 from .sleepy_detector import SleepyDetectorThread
 from .ultrasonic import UltrasonicDetectionThread
+from .buzzer import buzz
 from collections import deque
 
+# Human Machine Interface (HMI) untuk Integrated EFREST
 class MyApp(QWidget):
     def __init__(self):
         super().__init__()
 
+        # Antrian status untuk handle perubahan status dari beberapa sensor
         self.status_queue = deque(maxlen=2)
-        self.control_is_enabled = True
-        self.grace_period = False
 
+        # States
+        self.control_is_enabled = True
+        self.is_lepas_rem = False
+
+        # Pengaturan layar utama
         self.setWindowTitle("Human Machine Interface")
         self.setGeometry(int(1280 / 4), int(720/4), 1280, 720)
         self.setStyleSheet("font-size: 24px")
 
-        hbox = QGridLayout()
-        hbox.setSpacing(10)
+        # Layout utama layar
+        main_layout = QGridLayout()
+        main_layout.setSpacing(10)
 
-        hbox.addLayout(self.create_truck_control(), 0, 0)
-        hbox.addLayout(self.create_ultrasonic_sensor(), 0, 1)
-        hbox.addLayout(self.create_sleepy_detection(), 1, 0)
-        hbox.addLayout(self.create_status(), 1, 1)
+        main_layout.addLayout(self.create_truck_control_layout(), 0, 0)
+        main_layout.addLayout(self.create_ultrasonic_data_layout(), 0, 1)
+        main_layout.addLayout(self.create_sleepy_detection_layout(), 1, 0)
+        main_layout.addLayout(self.create_status_layout(), 1, 1)
+        self.setLayout(main_layout)
 
-        self.setLayout(hbox)
-
+        # Jalankan thread untuk sleepy detector
         self.sleepy_detector = SleepyDetectorThread()
         self.sleepy_detector.data_sleepy_detector.connect(self.update_frame)
         self.sleepy_detector.start()
 
-        
+        # Jalani=kan thread untuk sensor ultrasonic
         self.sensor_ultrasonik = UltrasonicDetectionThread()
         self.sensor_ultrasonik.data_ultrasonik.connect(self.update_sensor_ultrasonik)
         self.sensor_ultrasonik.start()
 
-    def create_truck_control(self):
+    # Layout untuk kontrol truk
+    def create_truck_control_layout(self):
         layout = QVBoxLayout()
         heading = QLabel("Kontrol Truk")
         heading.setStyleSheet("font-weight: bold")
@@ -52,14 +59,14 @@ class MyApp(QWidget):
         self.button_kanan = QPushButton("Belok Kanan")
         self.button_berhenti = QPushButton("Berhenti")
         self.button_lepas_rem = QPushButton("Lepas Rem")
+        self.button_lepas_rem.setEnabled(False)
 
         self.button_maju.clicked.connect(Motor.maju)
         self.button_mundur.clicked.connect(Motor.mundur)
         self.button_kiri.clicked.connect(Motor.kiri)
         self.button_kanan.clicked.connect(Motor.kanan)
         self.button_berhenti.clicked.connect(Motor.berhenti)
-        self.button_lepas_rem.clicked.connect(self.set_start_grace_period)  # Trigger async function
-
+        self.button_lepas_rem.clicked.connect(self.lepas_rem)
 
         control_layout.addWidget(self.button_maju, 0, 0)
         control_layout.addWidget(self.button_mundur, 0, 1)
@@ -72,7 +79,8 @@ class MyApp(QWidget):
         layout.addLayout(control_layout)
         return layout
     
-    def create_ultrasonic_sensor(self):
+    # Layout untuk tampilan data dari sensor ultrasonik
+    def create_ultrasonic_data_layout(self):
         layout = QVBoxLayout()
         heading_sensor_1 = QLabel("Sensor Ultrasonik 1")
         heading_sensor_1.setStyleSheet("font-weight: bold")
@@ -102,8 +110,8 @@ class MyApp(QWidget):
         layout.addLayout(container_sensor_2)
         return layout
 
-
-    def create_sleepy_detection(self):
+    # Layout untuk live feed camera dan sleepy detection
+    def create_sleepy_detection_layout(self):
         layout = QVBoxLayout()
         heading = QLabel("Live Feed")
         heading.setStyleSheet("font-weight: bold")
@@ -118,7 +126,8 @@ class MyApp(QWidget):
 
         return layout 
     
-    def create_status(self):
+    # Layout untuk tampilan status
+    def create_status_layout(self):
         layout = QVBoxLayout()
         heading = QLabel("Car Status")
         heading.setStyleSheet("font-weight: bold")
@@ -132,19 +141,22 @@ class MyApp(QWidget):
         layout.addWidget(self.status_label)
 
         return layout
-        
+    
+    # Update image di sleepy_detection layout
     def update_frame(self, data):
-        # Get the image dimensions
+        # Ambil dimensi dari gambar
         img, warning = data
 
         height, width, _ = img.shape
         bytes_per_line = 3 * width
 
-        # Convert the OpenCV image to QImage
+        # Konversi gambar OpenCV menjadi QImage
         q_img = QImage(img.data, width, height, bytes_per_line, QImage.Format_RGB888).rgbSwapped()
 
+        # Tampilkan pada image_label
         self.image_label.setPixmap(QPixmap.fromImage(q_img).scaled(self.image_label.size(), Qt.KeepAspectRatio))
 
+        # Pengecekan status
         if warning:
             self.status_queue.append("Limited")
         else:
@@ -152,6 +164,7 @@ class MyApp(QWidget):
         
         self.update_display_status()
 
+    # Updata teks untuk data sensor ultrasonik
     def update_sensor_ultrasonik(self, data):
         sensor_1, sensor_2 = data
         distance_1, status_1 = sensor_1
@@ -162,27 +175,30 @@ class MyApp(QWidget):
         self.distance_sensor_2.setText(f"Jarak: {distance_2:.2f}")
         self.status_sensor_2.setText("Status: Bahaya" if status_2 else "Status: Aman")
 
-        status_2 = False
         if status_1 or status_2:
             self.status_queue.append("Stopped")
 
         self.update_display_status()
 
+    # Sesuai namanya
     def update_display_status(self):
-        if "Stopped" in self.status_queue:
+        if self.is_lepas_rem:
+            self.status_label.setText("Mode Lepas Rem")
+            self.status_label.setStyleSheet("background-color: orange; color: white")
+        elif "Stopped" in self.status_queue:
             self.status_label.setText("Stopped")
             self.status_label.setStyleSheet("background-color: red; color: white")
-            if not self.grace_period and self.control_is_enabled:
+            if not self.control_is_enabled:
                 self.toggle_controls()
         elif "Limited" in self.status_queue:
+            buzz(440, 2)
             self.status_label.setText("Limited")
             self.status_label.setStyleSheet("background-color: yellow; color: black")
         else:
-            if not self.control_is_enabled:
-                self.toggle_controls()
             self.status_label.setText("Normal")
             self.status_label.setStyleSheet("background-color: green; color: white")
 
+    # Fungsi untuk mengaktifkan dan menonaktifkan kontrol
     def toggle_controls(self):
         self.control_is_enabled = not self.control_is_enabled
         self.button_maju.setEnabled(self.control_is_enabled)
@@ -190,20 +206,18 @@ class MyApp(QWidget):
         self.button_kiri.setEnabled(self.control_is_enabled)
         self.button_kanan.setEnabled(self.control_is_enabled)
         self.button_berhenti.setEnabled(self.control_is_enabled)
+        self.button_lepas_rem.setEnabled(not self.control_is_enabled)
 
-    # BELUM BISA
-    def set_start_grace_period(self):
-        self.grace_period = not self.grace_period    
-        current_state = self.button_lepas_rem.isEnabled()
-        self.button_lepas_rem.setEnabled(not current_state)
+    # Jika dalam status berhenti karena dekat obyek
+    # bisa lepas rem untuk menggerakkan kembali
+    def lepas_rem(self):
+        self.toggle_lepas_rem()
+        if self.is_lepas_rem:
+            QTimer.singleShot(5000, self.toggle_lepas_rem)
+    
+    def toggle_lepas_rem(self):
+        self.is_lepas_rem = not self.is_lepas_rem
         self.toggle_controls()
-
-        print(current_state)
-        if self.grace_period:
-            QTimer.singleShot(5000, self.toggle_grace_period)
-
-    def toggle_grace_period(self):
-        self.grace_period = not self.grace_period
 
 def start_gui():
     # Main execution

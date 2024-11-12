@@ -9,7 +9,6 @@ PINS = {
         'in4': 8,
         'en_b': 22  
     },
-    'buzzer': 18,
     'ultrasonik_1': {
         'trigger': 20,
         'echo': 16
@@ -17,5 +16,6 @@ PINS = {
     'ultrasonik_2': {
         'trigger': 26,
         'echo': 19
-    } 
+    },
+    'buzzer': 18,
 }

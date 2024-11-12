@@ -14,6 +14,7 @@ class Motor:
       GPIO.output(PINS["motor_kiri"]["in3"],GPIO.LOW)
 
    def maju():
+      print('maju')
       GPIO.output(PINS["motor_kanan"]["in1"],GPIO.HIGH)
       GPIO.output(PINS["motor_kanan"]["in2"],GPIO.LOW)
 
@@ -21,6 +22,7 @@ class Motor:
       GPIO.output(PINS["motor_kiri"]["in3"],GPIO.LOW)
 
    def mundur():
+      print('mundur')
       GPIO.output(PINS["motor_kanan"]["in1"],GPIO.LOW)
       GPIO.output(PINS["motor_kanan"]["in2"],GPIO.HIGH)
 
@@ -28,6 +30,7 @@ class Motor:
       GPIO.output(PINS["motor_kiri"]["in3"],GPIO.HIGH)
 
    def kanan():
+      print('belok kanan')
       GPIO.output(PINS["motor_kanan"]["in1"],GPIO.HIGH)
       GPIO.output(PINS["motor_kanan"]["in2"],GPIO.LOW)
 
@@ -35,6 +38,7 @@ class Motor:
       GPIO.output(PINS["motor_kiri"]["in3"],GPIO.LOW)
 
    def kiri():
+      print('belok kiri')
       GPIO.output(PINS["motor_kanan"]["in1"],GPIO.LOW)
       GPIO.output(PINS["motor_kanan"]["in2"],GPIO.LOW)
 
@@ -42,6 +46,7 @@ class Motor:
       GPIO.output(PINS["motor_kiri"]["in3"],GPIO.LOW)
 
    def berhenti():
+      print('berhenti')
       GPIO.output(PINS["motor_kanan"]["in1"],GPIO.LOW)
       GPIO.output(PINS["motor_kanan"]["in2"],GPIO.LOW)
 

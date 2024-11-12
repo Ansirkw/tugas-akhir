@@ -15,6 +15,7 @@ class UltrasonicDetectionThread(QThread):
             status_2 = self.get_status(distance_2)
 
             self.data_ultrasonik.emit(((distance_1, status_1), (distance_2, status_2)))
+            time.sleep(0.1)
 
     def send_trigger_pulse(self, trigger_pin):
         GPIO.output(trigger_pin, True)
@@ -34,10 +35,11 @@ class UltrasonicDetectionThread(QThread):
         finish = time.time()
         pulse_len = finish - start
         distance_cm = pulse_len / 0.000058
+        
         return distance_cm
     
     def get_status(self, distance):
-        if 2 <= distance <= 6:
+        if 10 <= distance <= 20:
             return False # aman
         else:
             return True # peringatan

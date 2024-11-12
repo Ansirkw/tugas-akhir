@@ -22,9 +22,21 @@ class SleepyDetectorThread(QThread):
             rects = detector(gray, 1)
             sleepy_warning = False
 
-            for rect in rects:
+            for i, rect in enumerate(rects):
+                x = rect.left()
+                y = rect.top()
+                w = rect.right() - x
+                h = rect.bottom() - y
+                
+                cv2.rectangle(img, (x,y), (x+w,y+h), (0,255,0), 2)
+                cv2.putText(img, "Face #{}".format(i + 1), (x - 10, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2, cv2.LINE_AA)
+                
                 landmarks = predictor(gray, rect)
                 landmarks = self.landmarks_to_np(landmarks)
+
+                for (x, y) in landmarks:
+                    cv2.circle(img, (x, y), 2, (0, 0, 255), -1)
+
                 d1 = np.linalg.norm(landmarks[37] - landmarks[41])
                 d2 = np.linalg.norm(landmarks[38] - landmarks[40])
                 d3 = np.linalg.norm(landmarks[43] - landmarks[47])

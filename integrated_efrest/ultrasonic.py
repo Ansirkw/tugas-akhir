@@ -1,23 +1,20 @@
 import RPi.GPIO as GPIO
 import time 
 from PyQt5.QtCore import QThread, pyqtSignal
-from pin_config import PINS
+from .pin_config import PINS
 
 class UltrasonicDetectionThread(QThread):
     data_ultrasonik = pyqtSignal(tuple)
 
-    def __init__(self):
-        self.running = True
-
     def run(self):
-        while self.running:
+        while True:
             distance_1 = self.get_distance(PINS['ultrasonik_1']['trigger'], PINS['ultrasonik_1']['echo'])
             distance_2 = self.get_distance(PINS['ultrasonik_2']['trigger'], PINS['ultrasonik_2']['echo'])
             
             status_1 = self.get_status(distance_1)
             status_2 = self.get_status(distance_2)
 
-            self.data_ultrasonik.emit((status_1, status_2))
+            self.data_ultrasonik.emit(((distance_1, status_1), (distance_2, status_2)))
 
     def send_trigger_pulse(self, trigger_pin):
         GPIO.output(trigger_pin, True)

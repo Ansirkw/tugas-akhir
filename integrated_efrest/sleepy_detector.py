@@ -1,6 +1,6 @@
 import time 
 from PyQt5.QtCore import QThread, pyqtSignal
-from pin_config import PINS
+from .pin_config import PINS
 import cv2
 import dlib
 import numpy as np

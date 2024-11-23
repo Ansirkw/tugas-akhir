@@ -1,6 +1,6 @@
 import RPi.GPIO as GPIO
 from .pin_config import PINS
-import time
+from PyQt5.QtCore import QThread
 
 class Motor:
    def setup(speed):
@@ -55,4 +55,26 @@ class Motor:
       GPIO.output(PINS["motor_kiri"]["in4"],GPIO.LOW)
       GPIO.output(PINS["motor_kiri"]["in3"],GPIO.LOW)
       
+class MotorThread(QThread):
+    running = False
+    def __init__(self, move, speed):
+        super(QThread, self).__init__()
+        self.move = move
+        self.speed = speed
 
+
+    def run(self):
+        _ = Motor.setup(self.speed)
+        self.running = True
+        while self.running:
+            if (self.move == "maju"):
+                Motor.maju()
+            elif (self.move == "mundur"):
+                Motor.mundur()
+            elif (self.move == "kiri"):
+                Motor.kiri()
+            elif (self.move == "kanan"):
+                Motor.kanan()
+            elif (self.move == "berhenti"):
+                Motor.berhenti()
+        Motor.berhenti()

@@ -4,36 +4,11 @@ from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QHBoxLayout, QWidget, QVBoxLayout, QPushButton, QLabel, QGridLayout, QSizePolicy
-from .motor import Motor
+from .motor import MotorThread
 from .sleepy_detector import SleepyDetectorThread
 from .ultrasonic import UltrasonicDetectionThread
-from .buzzer import buzz
+from .buzzer import BuzzThread
 from collections import deque
-from .pin_config import PINS
-
-class Test(QThread):
-    running = False
-    def __init__(self, move, speed):
-        super(QThread, self).__init__()
-        self.move = move
-        self.speed = speed
-
-
-    def run(self):
-        _ = Motor.setup(self.speed)
-        self.running = True
-        while self.running:
-            if (self.move == "maju"):
-                Motor.maju()
-            elif (self.move == "mundur"):
-                Motor.mundur()
-            elif (self.move == "kiri"):
-                Motor.kiri()
-            elif (self.move == "kanan"):
-                Motor.kanan()
-            elif (self.move == "berhenti"):
-                Motor.berhenti()
-        Motor.berhenti()
                 
 # Human Machine Interface (HMI) untuk Integrated EFREST
 class MyApp(QWidget):
@@ -75,9 +50,11 @@ class MyApp(QWidget):
         self.speed = 100
         self.motor_thread = None
 
+        self.buzz_thread = None
+
     def start_control_motor_thread(self, move):
         if self.motor_thread is None:
-            self.motor_thread = Test(move=move, speed=self.speed)
+            self.motor_thread = MotorThread(move=move, speed=self.speed)
             self.motor_thread.start()
 
     def stop_control_motor_thread(self):
@@ -86,6 +63,22 @@ class MyApp(QWidget):
             self.motor_thread.quit()
             self.motor_thread.wait()
             self.motor_thread = None
+    
+    def change_motor_thread_speed(self):
+        if self.motor_thread:
+            self.motor_thread.speed = self.speed
+    
+    def start_buzz_thread(self):
+        if self.buzz_thread is None:
+            self.buzz_thread = BuzzThread()
+            self.buzz_thread.finished.connect(self.stop_buzz_thread)
+            self.buzz_thread.start()
+    
+    def stop_buzz_thread(self):
+        if self.buzz_thread:
+            self.buzz_thread.quit()
+            self.buzz_thread.wait()
+            self.buzz_thread = None
 
     # Layout untuk kontrol truk
     def create_truck_control_layout(self):
@@ -111,6 +104,7 @@ class MyApp(QWidget):
         self.button_kiri.released.connect(self.stop_control_motor_thread)
         self.button_kanan.pressed.connect(lambda: self.start_control_motor_thread("kanan"))
         self.button_kanan.released.connect(self.stop_control_motor_thread)
+        self.button_berhenti.clicked.connect(lambda: self.status_queue.append("Limited"))
         self.button_lepas_rem.clicked.connect(self.lepas_rem)
 
         control_layout.addWidget(self.button_maju, 0, 0)
@@ -236,16 +230,33 @@ class MyApp(QWidget):
             if self.control_is_enabled:
                 self.toggle_controls()
         elif "Limited" in self.status_queue:
-            buzz(440, 2)
             self.status_label.setText("Limited")
             self.status_label.setStyleSheet("background-color: yellow; color: black")
+            self.start_buzz_thread()
             self.speed = 50
+            self.change_motor_thread_speed()
         else:
             self.status_label.setText("Normal")
             self.status_label.setStyleSheet("background-color: green; color: white")
             if not self.control_is_enabled:
                 self.toggle_controls()
             self.speed = 100
+            self.change_motor_thread_speed()
+            self.stop_buzz_thread()
+    def keyPressEvent(self, e):
+        if e.text() == "w":
+            self.start_control_motor_thread("maju")
+        elif e.text() == "s":   
+            self.start_control_motor_thread("mundur")
+        elif e.text() == "a":   
+            self.start_control_motor_thread("kiri")
+        elif e.text() == "d":   
+            self.start_control_motor_thread("kanan")
+
+    def keyReleaseEvent(self, e):
+        if e.text() in "wsad":
+            self.stop_control_motor_thread()
+            
 
     # Fungsi untuk mengaktifkan dan menonaktifkan kontrol
     def toggle_controls(self):

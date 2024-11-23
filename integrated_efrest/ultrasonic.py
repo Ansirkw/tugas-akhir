@@ -39,7 +39,7 @@ class UltrasonicDetectionThread(QThread):
         return distance_cm
     
     def get_status(self, distance):
-        if 10 <= distance <= 20:
+        if 8 <= distance <= 80:
             return False # aman
         else:
             return True # peringatan

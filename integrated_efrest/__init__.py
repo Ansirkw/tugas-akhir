@@ -1,11 +1,13 @@
 from RPi import GPIO
 from .pin_config import PINS
-from .motor import Motor
 from .gui import start_gui
+from .motor import Motor
+import time
+import threading
 
 def setup_gpio():
     GPIO.setmode(GPIO.BCM)
-    GPIO.setwarnings(False)
+    # GPIO.setwarnings(False)
 
     # motor controls
     GPIO.setup(PINS['motor_kanan']['in1'],  GPIO.OUT)
@@ -24,9 +26,8 @@ def setup_gpio():
 
     # buzzer
     GPIO.setup(PINS['buzzer'], GPIO.OUT)
-
-    Motor.setup()
     
 def main():
     setup_gpio()
+    # GPIO.cleanup()
     start_gui()

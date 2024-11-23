@@ -1,13 +1,40 @@
 import sys
+import RPi.GPIO as GPIO
 from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QHBoxLayout, QWidget, QVBoxLayout, QPushButton, QLabel, QGridLayout, QSizePolicy
 from .motor import Motor
 from .sleepy_detector import SleepyDetectorThread
 from .ultrasonic import UltrasonicDetectionThread
 from .buzzer import buzz
 from collections import deque
+from .pin_config import PINS
 
+class Test(QThread):
+    running = False
+    def __init__(self, move, speed):
+        super(QThread, self).__init__()
+        self.move = move
+        self.speed = speed
+
+
+    def run(self):
+        _ = Motor.setup(self.speed)
+        self.running = True
+        while self.running:
+            if (self.move == "maju"):
+                Motor.maju()
+            elif (self.move == "mundur"):
+                Motor.mundur()
+            elif (self.move == "kiri"):
+                Motor.kiri()
+            elif (self.move == "kanan"):
+                Motor.kanan()
+            elif (self.move == "berhenti"):
+                Motor.berhenti()
+        Motor.berhenti()
+                
 # Human Machine Interface (HMI) untuk Integrated EFREST
 class MyApp(QWidget):
     def __init__(self):
@@ -44,6 +71,21 @@ class MyApp(QWidget):
         self.sensor_ultrasonik = UltrasonicDetectionThread()
         self.sensor_ultrasonik.data_ultrasonik.connect(self.update_sensor_ultrasonik)
         self.sensor_ultrasonik.start()
+        
+        self.speed = 100
+        self.motor_thread = None
+
+    def start_control_motor_thread(self, move):
+        if self.motor_thread is None:
+            self.motor_thread = Test(move=move, speed=self.speed)
+            self.motor_thread.start()
+
+    def stop_control_motor_thread(self):
+        if self.motor_thread:
+            self.motor_thread.running = False
+            self.motor_thread.quit()
+            self.motor_thread.wait()
+            self.motor_thread = None
 
     # Layout untuk kontrol truk
     def create_truck_control_layout(self):
@@ -61,11 +103,14 @@ class MyApp(QWidget):
         self.button_lepas_rem = QPushButton("Lepas Rem")
         self.button_lepas_rem.setEnabled(False)
 
-        self.button_maju.clicked.connect(Motor.maju)
-        self.button_mundur.clicked.connect(Motor.mundur)
-        self.button_kiri.clicked.connect(Motor.kiri)
-        self.button_kanan.clicked.connect(Motor.kanan)
-        self.button_berhenti.clicked.connect(Motor.berhenti)
+        self.button_maju.pressed.connect(lambda: self.start_control_motor_thread("maju"))
+        self.button_maju.released.connect(self.stop_control_motor_thread)
+        self.button_mundur.pressed.connect(lambda: self.start_control_motor_thread("mundur"))
+        self.button_mundur.released.connect(self.stop_control_motor_thread)
+        self.button_kiri.pressed.connect(lambda: self.start_control_motor_thread("kiri"))
+        self.button_kiri.released.connect(self.stop_control_motor_thread)
+        self.button_kanan.pressed.connect(lambda: self.start_control_motor_thread("kanan"))
+        self.button_kanan.released.connect(self.stop_control_motor_thread)
         self.button_lepas_rem.clicked.connect(self.lepas_rem)
 
         control_layout.addWidget(self.button_maju, 0, 0)
@@ -78,7 +123,7 @@ class MyApp(QWidget):
         layout.addWidget(heading)
         layout.addLayout(control_layout)
         return layout
-    
+
     # Layout untuk tampilan data dari sensor ultrasonik
     def create_ultrasonic_data_layout(self):
         layout = QVBoxLayout()
@@ -188,15 +233,19 @@ class MyApp(QWidget):
         elif "Stopped" in self.status_queue:
             self.status_label.setText("Stopped")
             self.status_label.setStyleSheet("background-color: red; color: white")
-            if not self.control_is_enabled:
+            if self.control_is_enabled:
                 self.toggle_controls()
         elif "Limited" in self.status_queue:
             buzz(440, 2)
             self.status_label.setText("Limited")
             self.status_label.setStyleSheet("background-color: yellow; color: black")
+            self.speed = 50
         else:
             self.status_label.setText("Normal")
             self.status_label.setStyleSheet("background-color: green; color: white")
+            if not self.control_is_enabled:
+                self.toggle_controls()
+            self.speed = 100
 
     # Fungsi untuk mengaktifkan dan menonaktifkan kontrol
     def toggle_controls(self):
@@ -218,14 +267,16 @@ class MyApp(QWidget):
     def toggle_lepas_rem(self):
         self.is_lepas_rem = not self.is_lepas_rem
         self.toggle_controls()
-
-def start_gui():
-    # Main execution
+    
+def appExec():
     app = QApplication(sys.argv)
     window = MyApp()
     window.show()
-
     app.exec_()
+    GPIO.cleanup()
+
+def start_gui():
+    sys.exit(appExec())
 
 # if __name__ == "__main__":
     # start_gui()

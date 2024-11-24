@@ -23,9 +23,6 @@ def setup_gpio():
     GPIO.setup(PINS['ultrasonik_1']['echo'],    GPIO.IN)
     GPIO.setup(PINS['ultrasonik_2']['trigger'], GPIO.OUT)
     GPIO.setup(PINS['ultrasonik_2']['echo'],    GPIO.IN)
-
-    # buzzer
-    GPIO.setup(PINS['buzzer'], GPIO.OUT)
     
 def main():
     setup_gpio()

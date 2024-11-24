@@ -64,9 +64,12 @@ class MotorThread(QThread):
 
 
     def run(self):
-        _ = Motor.setup(self.speed)
+        pwm_a, pwm_b = Motor.setup(self.speed)
         self.running = True
         while self.running:
+            pwm_a.start(self.speed)
+            pwm_b.start(self.speed)
+
             if (self.move == "maju"):
                 Motor.maju()
             elif (self.move == "mundur"):

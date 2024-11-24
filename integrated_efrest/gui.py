@@ -92,7 +92,6 @@ class MyApp(QWidget):
         self.button_mundur = QPushButton("Mundur")   
         self.button_kiri = QPushButton("Belok Kiri")   
         self.button_kanan = QPushButton("Belok Kanan")
-        self.button_berhenti = QPushButton("Berhenti")
         self.button_lepas_rem = QPushButton("Lepas Rem")
         self.button_lepas_rem.setEnabled(False)
 
@@ -104,14 +103,15 @@ class MyApp(QWidget):
         self.button_kiri.released.connect(self.stop_control_motor_thread)
         self.button_kanan.pressed.connect(lambda: self.start_control_motor_thread("kanan"))
         self.button_kanan.released.connect(self.stop_control_motor_thread)
-        self.button_berhenti.clicked.connect(lambda: self.status_queue.append("Limited"))
         self.button_lepas_rem.clicked.connect(self.lepas_rem)
+
+        self.ear_score = QLabel("Calculating...")
 
         control_layout.addWidget(self.button_maju, 0, 0)
         control_layout.addWidget(self.button_mundur, 0, 1)
         control_layout.addWidget(self.button_kiri, 1, 0)
         control_layout.addWidget(self.button_kanan, 1, 1)
-        control_layout.addWidget(self.button_berhenti, 2, 0)
+        control_layout.addWidget(self.ear_score, 2, 0)
         control_layout.addWidget(self.button_lepas_rem, 2, 1)
 
         layout.addWidget(heading)
@@ -184,7 +184,7 @@ class MyApp(QWidget):
     # Update image di sleepy_detection layout
     def update_frame(self, data):
         # Ambil dimensi dari gambar
-        img, warning = data
+        img, warning, ear_score = data
 
         height, width, _ = img.shape
         bytes_per_line = 3 * width
@@ -197,9 +197,11 @@ class MyApp(QWidget):
 
         # Pengecekan status
         if warning:
-            self.status_queue.append("Limited")
+            self.status_queue.append("Stopped")
         else:
             self.status_queue.append("Normal")
+        
+        self.ear_score.setText(f"EAR: {ear_score:.2f}")
         
         self.update_display_status()
 
@@ -229,12 +231,6 @@ class MyApp(QWidget):
             self.status_label.setStyleSheet("background-color: red; color: white")
             if self.control_is_enabled:
                 self.toggle_controls()
-        elif "Limited" in self.status_queue:
-            self.status_label.setText("Limited")
-            self.status_label.setStyleSheet("background-color: yellow; color: black")
-            self.start_buzz_thread()
-            self.speed = 50
-            self.change_motor_thread_speed()
         else:
             self.status_label.setText("Normal")
             self.status_label.setStyleSheet("background-color: green; color: white")
@@ -242,7 +238,7 @@ class MyApp(QWidget):
                 self.toggle_controls()
             self.speed = 100
             self.change_motor_thread_speed()
-            self.stop_buzz_thread()
+
     def keyPressEvent(self, e):
         if e.text() == "w":
             self.start_control_motor_thread("maju")
@@ -265,7 +261,6 @@ class MyApp(QWidget):
         self.button_mundur.setEnabled(self.control_is_enabled)
         self.button_kiri.setEnabled(self.control_is_enabled)
         self.button_kanan.setEnabled(self.control_is_enabled)
-        self.button_berhenti.setEnabled(self.control_is_enabled)
         self.button_lepas_rem.setEnabled(not self.control_is_enabled)
 
     # Jika dalam status berhenti karena dekat obyek

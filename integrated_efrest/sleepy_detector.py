@@ -21,6 +21,7 @@ class SleepyDetectorThread(QThread):
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             rects = detector(gray, 1)
             sleepy_warning = False
+            ear_score = 0
 
             for i, rect in enumerate(rects):
                 x = rect.left()
@@ -46,6 +47,7 @@ class SleepyDetectorThread(QThread):
                 d6 = np.linalg.norm(landmarks[42] - landmarks[45])
                 d_reference = (d5 + d6) / 2
                 d_judge = d_mean / d_reference
+                ear_score = d_judge
 
                 flag = int(d_judge < 0.25)
                 queue = queue[1:len(queue)] + [flag]
@@ -56,7 +58,7 @@ class SleepyDetectorThread(QThread):
                 else:
                     cv2.putText(img, "AMAN", (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2, cv2.LINE_AA)
             
-            self.data_sleepy_detector.emit((img, sleepy_warning))
+            self.data_sleepy_detector.emit((img, sleepy_warning, ear_score))
 
     def landmarks_to_np(self, landmarks, dtype="int"):
         num = landmarks.num_parts
